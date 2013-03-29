@@ -23,7 +23,7 @@ def _canonical_reordering(bitmap1, bitmap2):
     sum = 0
     bitmap1 = bitmap1 >> 1
     while bitmap1:
-        sum += _bitCount(bitmap1)
+        sum += _bitCount(bitmap1 & bitmap2)
         bitmap1 = bitmap1 >> 1
     
     #negative if odd number of swaps, positive otherwise
@@ -99,9 +99,7 @@ class Multivector(object):
         return resp
     
     def __add__(self, other):
-        respDict = {}
-        for bitmap in self.getStoredBitmaps():
-            respDict[bitmap] = self.getCoeficient(bitmap)
+        respDict = self.coeficients.copy()
         
         for bitmap in other.getStoredBitmaps():
             coef = other.getCoeficient(bitmap)
@@ -149,23 +147,25 @@ class Multivector(object):
     def __eq__(self, other):
         return self.coeficients == other.coeficients
         
-a = Multivector({0:3})
-print a
-b = Multivector({0b0:-1, 0b111:49.8})
-print b
-c = a + b + Multivector([0, 37.8])
-print c
+if __name__ == '__main__':        
 
-d = Multivector([0, 1])
-e = Multivector([0, 0, 3])
-f = Multivector([0, 1])
-
-#print d ^ e ^ f
-g = d ^ e
-print g
-print g.rp(d, 2)
-#import random
-#a = Multivector([0 for i in range(10)])
-#print a
-#for i in range(30):
-#    print "%s: %s" % (bin(i), vectorRerp(i))
+    a = Multivector({0:3})
+    print a
+    b = Multivector({0b0:-1, 0b111:49.8})
+    print b
+    c = a + b + Multivector([0, 37.8])
+    print c
+    
+    d = Multivector([0, 1])
+    e = Multivector([0, 0, 3])
+    f = Multivector([0, 1])
+    
+    #print d ^ e ^ f
+    g = d ^ e
+    print g
+    print g.rp(d, 2)
+    #import random
+    #a = Multivector([0 for i in range(10)])
+    #print a
+    #for i in range(30):
+    #    print "%s: %s" % (bin(i), vectorRerp(i))
