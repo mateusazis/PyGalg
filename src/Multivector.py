@@ -68,14 +68,17 @@ class Multivector(object):
         """
         argType = type(coeficients)
         if argType is dict:
-            self.coeficients = coeficients
+            self.coeficients = coeficients.copy()
+            
         elif argType is list or argType is tuple:
-            self.coeficients = {}
-            for i in range(len(coeficients)):
-                if coeficients[i]:
-                    self.coeficients[i] = coeficients[i]
-                    
-    
+            size = len(coeficients)
+            sequence = ((i, coeficients[i]) for i in range(size))
+            self.coeficients = {bitmap: coef for (bitmap, coef) in sequence}
+                
+        #remove bitmaps whose keys are zero
+        for bitmap, coef in self.coeficients.items():
+            if not coef:
+                del self.coeficients[bitmap]
     
     def __xor__(self, other):
         """
@@ -90,19 +93,20 @@ class Multivector(object):
         Outer product between two multivectors
         """
         resp = Multivector([])
-        for firstItems in self.coeficients.items():
-            bitmap1 , coef1 = firstItems[0], firstItems[1]
-            
-            for secondItems in other.coeficients.items():
-                bitmap2 , coef2 = secondItems[0], secondItems[1]
+        
+        for bitmap1 , coef1 in self.coeficients.items():            
+            for bitmap2 , coef2 in other.coeficients.items():
                 resp += _baseOuterProduct(bitmap1, coef1, bitmap2, coef2)
+                
         return resp
     
     def __add__(self, other):
+        """
+        Calculates the sum of two multivectores, returning another one
+        """
         respDict = self.coeficients.copy()
         
-        for bitmap in other.getStoredBitmaps():
-            coef = other.getCoeficient(bitmap)
+        for bitmap, coef in other.coeficients.items():
             if respDict.has_key(bitmap):
                 respDict[bitmap] += coef
             else:
@@ -111,9 +115,15 @@ class Multivector(object):
         
             
     def getCoeficient(self, bitmap):
+        """
+        Returns the coeficient of a given bitmap representing a base
+        """
         return self.coeficients[bitmap]
         
     def getStoredBitmaps(self):
+        """
+        Returns a tuple all stored bitmaps (that is, the ones with non-zero coeficients)
+        """
         return self.coeficients.keys()
      
     def rp(self, other, dimension):
@@ -121,11 +131,8 @@ class Multivector(object):
         Regressive product between two multivectors
         """
         resp = Multivector([])
-        for firstItems in self.coeficients.items():
-            bitmap1 , coef1 = firstItems[0], firstItems[1]
-            
-            for secondItems in other.coeficients.items():
-                bitmap2 , coef2 = secondItems[0], secondItems[1]
+        for bitmap1 , coef1 in self.coeficients.items():
+            for bitmap2 , coef2 in other.coeficients.items():
                 resp += _baseRegressiveProduct(bitmap1, coef1, bitmap2, coef2, dimension)
         return resp
         
@@ -164,6 +171,7 @@ if __name__ == '__main__':
     g = d ^ e
     print g
     print g.rp(d, 2)
+    d = Multivector({0b11101:0})
     #import random
     #a = Multivector([0 for i in range(10)])
     #print a
