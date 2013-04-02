@@ -47,7 +47,7 @@ def _baseRegressiveProduct(bitmap1, coef1, bitmap2, coef2, dimension):
     newBitmap = bitmap1 & bitmap2
     
     if _bitCount(bitmap1) + _bitCount(bitmap2) - _bitCount(newBitmap) != dimension:
-        return Multivector(coef=0)
+        return Multivector([])
     
     sign = _canonical_reordering(bitmap1 ^ newBitmap, bitmap2 ^ newBitmap)
     newCoef = sign * coef1 * coef2
@@ -57,7 +57,7 @@ class Multivector(object):
     """
     Class for Multivector representation and manipulation
     """
-    def __init__(self, coeficients):
+    def __init__(self, coeficients = None):
         """
         Initializes a multivector with a given arguments
         
@@ -66,19 +66,23 @@ class Multivector(object):
             
             coeficient dict: {0:10, 1:4, 3:2, 4:5} is (10+e1+2e1^e2+5e3)
         """
-        argType = type(coeficients)
-        if argType is dict:
-            self.coeficients = coeficients.copy()
+        if coeficients == None:
+            self.coeficients = {}
+        else:
+            argType = type(coeficients)
             
-        elif argType is list or argType is tuple:
-            size = len(coeficients)
-            sequence = ((i, coeficients[i]) for i in range(size))
-            self.coeficients = {bitmap: coef for (bitmap, coef) in sequence}
+            if argType is dict:
+                self.coeficients = coeficients.copy()
                 
-        #remove bitmaps whose keys are zero
-        for bitmap, coef in self.coeficients.items():
-            if not coef:
-                del self.coeficients[bitmap]
+            elif argType is list or argType is tuple:
+                size = len(coeficients)
+                sequence = ((i, coeficients[i]) for i in range(size))
+                self.coeficients = {bitmap: coef for (bitmap, coef) in sequence}
+                
+            #remove bitmaps whose keys are zero
+            for bitmap, coef in self.coeficients.items():
+                if coef == 0:
+                    del self.coeficients[bitmap]
     
     def __xor__(self, other):
         """
@@ -172,6 +176,7 @@ if __name__ == '__main__':
     print g
     print g.rp(d, 2)
     d = Multivector({0b11101:0})
+    print Multivector()
     #import random
     #a = Multivector([0 for i in range(10)])
     #print a
