@@ -1,4 +1,7 @@
 def _bitCount(n):
+    """
+    Counts the amount of bits '1' in a binary integer.
+    """
     resp = 0
     while n:
         if n & 1:
@@ -51,6 +54,13 @@ def _baseRegressiveProduct(bitmap1, coef1, bitmap2, coef2, dimension):
     
     sign = _canonical_reordering(bitmap1 ^ newBitmap, bitmap2 ^ newBitmap)
     newCoef = sign * coef1 * coef2
+    return Multivector({newBitmap : newCoef})
+    
+def _baseGeometricProduct(bitmap1, coef1, bitmap2, coef2):
+    newBitmap = bitmap1 ^ bitmap2
+    sign = _canonical_reordering(bitmap1, bitmap2)
+    newCoef = sign * coef1 * coef2
+    
     return Multivector({newBitmap : newCoef})
 
 class Multivector(object):    
@@ -117,6 +127,19 @@ class Multivector(object):
                 respDict[bitmap] = coef
         return Multivector(respDict)
         
+    def __mul__(self, value):
+        """
+        Multiplies all weights of the basis blades by value.
+        """
+        valueType = type(value)
+        if valueType is int or valueType is float:
+            respDict = {}
+            if value != 0:
+                for bitmap in self.coeficients.keys():
+                    respDict[bitmap] = self.coeficients[bitmap] * value
+            return Multivector(respDict)
+        elif valueType is Multivector:
+            return self.sp(value)
             
     def getCoeficient(self, bitmap):
         """
@@ -158,27 +181,92 @@ class Multivector(object):
     def __eq__(self, other):
         return self.coeficients == other.coeficients
         
+    def gp(self, other):
+        """
+        Geometric product between two multivectors using Euclidean metrics.
+        """
+        resp = Multivector([])
+        
+        for bitmap1 , coef1 in self.coeficients.items():            
+            for bitmap2 , coef2 in other.coeficients.items():
+                resp += _baseGeometricProduct(bitmap1, coef1, bitmap2, coef2)
+                
+        return resp
+        
+    def gradeExtract(self, grade):
+        """
+        Extract from this multivector the blades that match the specified grade.
+        """
+        resp = Multivector()
+        for bitmap, coef in self.coeficients.items():
+            bits1Count = _bitCount(bitmap)
+            if bits1Count == grade:
+                resp += Multivector({bitmap:coef})
+        return resp
+        
+    @property
+    def grade(self):
+        """
+        Returns the grade of this multivector if it represents a blade. Otherwise, raises an error.
+        """
+        items = self.coeficients.items()
+        if not items:
+            return 0
+        bitmap, coef = items[0]
+        candidateGrade = _bitCount(bitmap)
+        for bitmap, coef in items:
+            if _bitCount(bitmap) != candidateGrade:
+                raise Exception("Requesting grade from a non-blade multivector")
+        return candidateGrade
+        
+    def lcont(self, other):
+        """
+        Left contraction between 2 multivectors.
+        """
+        gradeR = self.grade
+        gradeS = other.grade
+        gp = self.gp(other)
+        return gp.gradeExtract(gradeS - gradeR)
+        
+    def rcont(self, other):
+        """
+        Right contraction between 2 multivectors.
+        """
+        gradeR = self.grade
+        gradeS = other.grade
+        gp = self.gp(other)
+        return gp.gradeExtract(gradeR - gradeS)
+        
+    def sp(self, other):
+        """
+        Scalar product between 2 multivectors.
+        """
+        gp = self.gp(other)
+        return gp.gradeExtract(0)
+        
+        
 if __name__ == '__main__':        
 
-    a = Multivector({0:3})
-    print a
-    b = Multivector({0b0:-1, 0b111:49.8})
-    print b
-    c = a + b + Multivector([0, 37.8])
-    print c
-    
-    d = Multivector([0, 1])
-    e = Multivector([0, 0, 3])
-    f = Multivector([0, 1])
-    
-    #print d ^ e ^ f
-    g = d ^ e
-    print g
-    print g.rp(d, 2)
-    d = Multivector({0b11101:0})
-    print Multivector()
+#    a = Multivector({0:3})
+#    print a
+#    b = Multivector({0b0:-1, 0b111:49.8})
+#    print b
+#    c = a + b + Multivector([0, 37.8])
+#    print c
+#    
+#    d = Multivector([0, 1])
+#    e = Multivector([0, 0, 3])
+#    f = Multivector([0, 1])
+#    
+#    #print d ^ e ^ f
+#    g = d ^ e
+#    print g
+#    print g.rp(d, 2)
+#    d = Multivector({0b11101:0})
+#    print Multivector()
     #import random
     #a = Multivector([0 for i in range(10)])
     #print a
     #for i in range(30):
     #    print "%s: %s" % (bin(i), vectorRerp(i))
+    pass
