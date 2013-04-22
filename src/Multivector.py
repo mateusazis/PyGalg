@@ -1,3 +1,5 @@
+import math
+
 def _bitCount(n):
     """
     Counts the amount of bits '1' in a binary integer.
@@ -127,6 +129,9 @@ class Multivector(object):
                 respDict[bitmap] = coef
         return Multivector(respDict)
         
+    def __sub__(self, other):
+        return self + (other * -1)
+        
     def __mul__(self, value):
         """
         Multiplies all weights of the basis blades by value.
@@ -244,7 +249,58 @@ class Multivector(object):
         gp = self.gp(other)
         return gp.gradeExtract(0)
         
+    @property
+    def reverse(self):
+        """
+        Returns the reverse of this multivector.
+        """
+        grade = self.grade
+        multiplier = (-1)**(grade * (grade -1) / 2)
+        return self * multiplier
         
+    @property
+    def squaredNorm(self):
+        """
+        Returns the squared norm of this multivector.
+        """
+        scalarProduct =  self.sp(self.reverse)
+        return scalarProduct.coeficients[0]
+        
+    @property
+    def inverse(self):
+        """
+        Returns the inverse of this multivector.
+        """
+        return self.reverse * (1.0 / self.squaredNorm)       
+    
+    def dual(self, spaceDimension):
+        """
+        Given an integer for the space dimensionality, returns the dual of this multivector.
+        """
+        pseudoScalarBitmap = 0
+        for i in range(spaceDimension):
+            pseudoScalarBitmap = (pseudoScalarBitmap << 1) | 1
+        pseudoScalar = Multivector({pseudoScalarBitmap : 1})
+        return self.lcont(pseudoScalar.inverse)
+        
+    def versorProduct(self, v):
+        gradeR = self.grade
+        gradeK = v.grade
+        print "grade r", gradeR, "gradeK", gradeK
+        return v.gp(self.gp(v.inverse))# * (-1 ** (gradeR * gradeK))
+        
+    def rotateOnPlane(self, plane, angle):
+        unitPlane = Multivector()
+        for bitmap in plane.coeficients.keys():
+            unitPlane.coeficients[bitmap] = 1
+        R = Multivector([math.cos(angle / 2.0)])
+        R -= unitPlane * math.sin(angle / 2.0)
+        return R.gp(self.gp(R.inverse))
+    
+e1 = Multivector({0b001: 1})
+e2 = Multivector({0b010: 1})
+e3 = Multivector({0b100: 1})
+    
 if __name__ == '__main__':        
 
 #    a = Multivector({0:3})
@@ -269,4 +325,36 @@ if __name__ == '__main__':
     #print a
     #for i in range(30):
     #    print "%s: %s" % (bin(i), vectorRerp(i))
-    pass
+#    e1 = Multivector.e1
+#    e2 = Multivector.e2
+#    e3 = Multivector.e3
+    def printAll(v):
+        print "v:", v
+        print "reverse:", v.reverse
+        print "inverse:", v.inverse
+        print "squared norm:", v.squaredNorm
+        
+#    printAll(e1*2 ^ e2)
+
+    a = e1 + e2
+    b = e2 - e1
+    c = e1 + e3
+    plane = a ^ b
+    other = c.lcont(plane)
+    print a
+    print b
+    print c
+    print plane
+    print other
+    
+    print "testing duals"
+    a = e1 ^ e2
+    print a.dual(3)
+    
+    a = e1 + e2
+    v = e2
+    print a.versorProduct(v)
+    
+    a = e1 + e2
+    plane = e1 ^ e3
+    print a.rotateOnPlane(plane, math.pi / 4)
