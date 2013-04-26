@@ -85,7 +85,11 @@ class Multivector(object):
             
             if argType is dict:
                 self.coeficients = coeficients.copy()
-                
+
+            #scalar-only constructor
+            elif argType is int or argType is float:
+                self.coeficients = {0b0 : coeficients}
+
             elif argType is list or argType is tuple:
                 size = len(coeficients)
                 sequence = ((i, coeficients[i]) for i in range(size))
@@ -136,14 +140,13 @@ class Multivector(object):
         """
         Multiplies all weights of the basis blades by value.
         """
-        valueType = type(value)
-        if valueType is int or valueType is float:
+        if isinstance(value, int) or isinstance(value, float):
             respDict = {}
             if value != 0:
                 for bitmap in self.coeficients.keys():
                     respDict[bitmap] = self.coeficients[bitmap] * value
             return Multivector(respDict)
-        elif valueType is Multivector:
+        elif isinstance(value, Multivector):
             return self.sp(value)
             
     def getCoeficient(self, bitmap):
