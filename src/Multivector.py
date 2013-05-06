@@ -1,4 +1,5 @@
 import math
+import copy
 
 def _bitCount(n):
     """
@@ -126,6 +127,10 @@ class Multivector(object):
         """
         respDict = self.coeficients.copy()
         
+        #convert number to multivector
+        if isinstance(other, (float, int)):
+            other = Multivector([other])
+        
         for bitmap, coef in other.coeficients.items():
             if respDict.has_key(bitmap):
                 respDict[bitmap] += coef
@@ -149,11 +154,17 @@ class Multivector(object):
         elif isinstance(value, Multivector):
             return self.sp(value)
             
+    def __div__(self, value):
+        return self * (1.0 / value)
+            
     def getCoeficient(self, bitmap):
         """
         Returns the coeficient of a given bitmap representing a base
         """
-        return self.coeficients[bitmap]
+        if self.coeficients.has_key(bitmap):
+            return self.coeficients[bitmap]
+        return 0
+        
         
     def getStoredBitmaps(self):
         """
@@ -182,7 +193,7 @@ class Multivector(object):
                 resp += (" " if resp else "") + "+ "
             productRepr = _vectorRepr(key)
             spacing = " " if productRepr else ""
-            resp += "%.1f%s%s" % (coef, spacing, productRepr)
+            resp += "%.2f%s%s" % (coef, spacing, productRepr)
             
         return resp or "0"
         
@@ -257,9 +268,14 @@ class Multivector(object):
         """
         Returns the reverse of this multivector.
         """
-        grade = self.grade
-        multiplier = (-1)**(grade * (grade -1) / 2)
-        return self * multiplier
+        respDict = {}
+        for bitmap, coef in self.coeficients.items():
+            grade = _bitCount(bitmap)
+            respDict[bitmap] = coef * (-1)**(grade * (grade -1) / 2)
+        return Multivector(respDict)
+#        grade = self.grade
+#        multiplier = (-1)**(grade * (grade -1) / 2)
+#        return self * multiplier
         
     @property
     def squaredNorm(self):
@@ -292,13 +308,24 @@ class Multivector(object):
         print "grade r", gradeR, "gradeK", gradeK
         return v.gp(self.gp(v.inverse))# * (-1 ** (gradeR * gradeK))
         
+    @staticmethod
+    def makeRotor(plane, angle):
+        norm = math.sqrt(plane.squaredNorm)
+        unitPlane = copy.copy(plane) / norm
+        
+        halfAngle = angle / 2.0        
+        
+        unitPlane = unitPlane * (-math.sin(halfAngle))
+        R = unitPlane + math.cos(halfAngle)
+        return R
+        
+    def rotate(self, rotor, angle):
+        invertedRotor = rotor.inverse
+        return (rotor.gp(self)).gp(invertedRotor)
+        
     def rotateOnPlane(self, plane, angle):
-        unitPlane = Multivector()
-        for bitmap in plane.coeficients.keys():
-            unitPlane.coeficients[bitmap] = 1
-        R = Multivector([math.cos(angle / 2.0)])
-        R -= unitPlane * math.sin(angle / 2.0)
-        return R.gp(self.gp(R.inverse))
+        R = Multivector.makeRotor(plane, angle)
+        return self.rotate(R, angle)
     
 e1 = Multivector({0b001: 1})
 e2 = Multivector({0b010: 1})
@@ -339,25 +366,25 @@ if __name__ == '__main__':
         
 #    printAll(e1*2 ^ e2)
 
-    a = e1 + e2
-    b = e2 - e1
-    c = e1 + e3
-    plane = a ^ b
-    other = c.lcont(plane)
-    print a
-    print b
-    print c
-    print plane
-    print other
-    
-    print "testing duals"
-    a = e1 ^ e2
-    print a.dual(3)
-    
-    a = e1 + e2
-    v = e2
-    print a.versorProduct(v)
-    
-    a = e1 + e2
-    plane = e1 ^ e3
-    print a.rotateOnPlane(plane, math.pi / 4)
+#    a = e1 + e2
+#    b = e2 - e1
+#    c = e1 + e3
+#    plane = a ^ b
+#    other = c.lcont(plane)
+#    print a
+#    print b
+#    print c
+#    print plane
+#    print other
+#    
+#    print "testing duals"
+#    a = e1 ^ e2
+#    print a.dual(3)
+#    
+#    a = e1 + e2
+#    v = e2
+#    print a.versorProduct(v)
+#    
+#    a = e1 + e2
+#    plane = e1 ^ e3
+#    print a.rotateOnPlane(plane, math.pi / 4)
