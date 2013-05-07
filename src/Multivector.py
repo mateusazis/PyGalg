@@ -282,8 +282,19 @@ class Multivector(object):
         """
         Returns the squared norm of this multivector.
         """
-        scalarProduct =  self.sp(self.reverse)
+        scalarProduct = self.sp(self.reverse)
         return scalarProduct.coeficients[0]
+        
+    @property
+    def norm(self):
+        return math.sqrt(self.squaredNorm)
+    
+    @property
+    def normalized(self):
+        """
+        Returns a copy of the blade with norm = 1
+        """
+        return self / self.norm     
         
     @property
     def inverse(self):
@@ -326,6 +337,24 @@ class Multivector(object):
     def rotateOnPlane(self, plane, angle):
         R = Multivector.makeRotor(plane, angle)
         return self.rotate(R, angle)
+        
+    @property
+    def rotorAngle(self):
+        """
+        Returns the angle, in radians, embedded in this rotor.
+        """
+        planeNorm = self.gradeExtract(2).norm
+        scalarNorm = self.gradeExtract(0).norm
+        print "Plane norm: %f, scalar %f" % (planeNorm, scalarNorm)
+        return -2 * math.atan2(planeNorm, scalarNorm)
+    
+    @property
+    def rotorPlane(self):
+        """
+        Returns the normalized rotation plane of this rotor.
+        """
+        plane = self.gradeExtract(2)
+        return plane.normalized
     
 e1 = Multivector({0b001: 1})
 e2 = Multivector({0b010: 1})
