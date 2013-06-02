@@ -65,6 +65,20 @@ def _baseGeometricProduct(bitmap1, coef1, bitmap2, coef2):
     newCoef = sign * coef1 * coef2
     
     return Multivector({newBitmap : newCoef})
+    
+def _getBaseComponents(mv):
+    bitmap = mv.coeficients.keys()[0]
+    bitCount = _bitCount(bitmap)
+    resp = []
+    if bitmap == 0:
+        resp.append(Multivector(0))
+    for i in range(bitCount):
+        currBitmap = 1 << i
+        if bitmap & currBitmap:
+            resp.append(Multivector({currBitmap : 1}))
+    return resp
+        
+    
 
 class Multivector(object):    
     """
@@ -321,6 +335,11 @@ class Multivector(object):
         
     @staticmethod
     def makeRotor(plane, angle):
+        """
+        Creates a rotor with the specified rotation plane and angle in radians.
+        
+        If the plane is non-unitary, it will be transformed into a unit plane.
+        """
         norm = math.sqrt(plane.squaredNorm)
         unitPlane = copy.copy(plane) / norm
         
@@ -330,13 +349,13 @@ class Multivector(object):
         R = unitPlane + math.cos(halfAngle)
         return R
         
-    def rotate(self, rotor, angle):
+    def rotate(self, rotor):
         invertedRotor = rotor.inverse
         return (rotor.gp(self)).gp(invertedRotor)
         
     def rotateOnPlane(self, plane, angle):
         R = Multivector.makeRotor(plane, angle)
-        return self.rotate(R, angle)
+        return self.rotate(R)
         
     @property
     def rotorAngle(self):
@@ -345,7 +364,7 @@ class Multivector(object):
         """
         planeNorm = self.gradeExtract(2).norm
         scalarNorm = self.gradeExtract(0).norm
-        print "Plane norm: %f, scalar %f" % (planeNorm, scalarNorm)
+#        print "Plane norm: %f, scalar %f" % (planeNorm, scalarNorm)
         return -2 * math.atan2(planeNorm, scalarNorm)
     
     @property
@@ -355,6 +374,32 @@ class Multivector(object):
         """
         plane = self.gradeExtract(2)
         return plane.normalized
+
+    @property    
+    def basis(self):
+        return [Multivector({bitmap: coef}) for bitmap, coef in self.coeficients.items()]
+        
+    def factorize(self):
+        norm = self.norm
+        C = self / norm
+        resp = [norm]
+        Ek = Multivector(0)
+        first = True
+        for e in self.basis:
+            if first or e.norm > Ek.norm:
+                Ek = e
+                first = False
+        
+        spanners = _getBaseComponents(Ek)
+        for i in range(len(spanners)):
+            Ei = spanners[i]
+            pi = (Ei.lcont(C.inverse)).lcont(C)
+            fi = pi / pi.norm
+            C = (fi.inverse).lcont(C)
+            resp.append(fi)
+        
+        return resp
+        
     
 e1 = Multivector({0b001: 1})
 e2 = Multivector({0b010: 1})
